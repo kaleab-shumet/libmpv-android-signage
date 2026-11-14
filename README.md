@@ -53,8 +53,12 @@ Android SDK/NDK and native dependency sources.
 
 ### GitHub releases
 
-Pushing a version tag builds both ARM ABIs and creates a GitHub release with
-the AAR, SHA-256 checksum and build/dependency information:
+Pushing a version tag creates a GitHub release containing two AAR variants,
+SHA-256 checksums and build/dependency information:
+
+- `*-arm.aar`: `armeabi-v7a` and `arm64-v8a` for signage hardware.
+- `*-universal.aar`: both ARM ABIs plus `x86` and `x86_64` for AVDs and Intel
+  Android devices.
 
 ```shell
 git tag v1.0.0

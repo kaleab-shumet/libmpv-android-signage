@@ -14,9 +14,9 @@ concurrency:
 
 jobs:
   release:
-    name: Build ARM AAR and create GitHub release
+    name: Build ARM and universal AARs
     runs-on: ubuntu-latest
-    timeout-minutes: 180
+    timeout-minutes: 240
     permissions:
       contents: write
 
@@ -64,22 +64,59 @@ jobs:
           IN_CI: 1
         run: ./download.sh
 
-      - name: Build both ARM ABIs
-        run: ./build-signage.sh --arch arm --skip-download
+      - name: Build all supported ABIs
+        run: ./build-signage.sh --arch all --skip-download
 
-      - name: Prepare release assets
+      - name: Save universal AAR
         shell: bash
         run: |
           set -euo pipefail
           version="${GITHUB_REF_NAME#v}"
           mkdir -p dist
           cp libmpv/build/outputs/aar/libmpv-release.aar \
-            "dist/libmpv-android-signage-${version}.aar"
+            "dist/libmpv-android-signage-${version}-universal.aar"
+
+      - name: Package ARM-only AAR
+        env:
+          LIBMPV_ABIS: armeabi-v7a,arm64-v8a
+        run: |
+          ./gradlew :libmpv:clean :libmpv:assembleRelease \
+            --no-configuration-cache
+          version="${GITHUB_REF_NAME#v}"
+          cp libmpv/build/outputs/aar/libmpv-release.aar \
+            "dist/libmpv-android-signage-${version}-arm.aar"
+
+      - name: Verify AAR ABI contents
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="${GITHUB_REF_NAME#v}"
+          arm_aar="dist/libmpv-android-signage-${version}-arm.aar"
+          universal_aar="dist/libmpv-android-signage-${version}-universal.aar"
+
+          for abi in armeabi-v7a arm64-v8a; do
+            unzip -Z1 "$arm_aar" | grep -Fx "jni/${abi}/libplayer.so" >/dev/null
+          done
+          if unzip -Z1 "$arm_aar" | grep -E '^jni/(x86|x86_64)/' >/dev/null; then
+            echo "ARM AAR unexpectedly contains an x86 ABI" >&2
+            exit 1
+          fi
+
+          for abi in armeabi-v7a arm64-v8a x86 x86_64; do
+            unzip -Z1 "$universal_aar" | grep -Fx "jni/${abi}/libplayer.so" >/dev/null
+          done
+          echo "ARM and universal AAR ABI contents verified."
+
+      - name: Prepare release assets
+        shell: bash
+        run: |
+          set -euo pipefail
           cp buildscripts/include/depinfo.sh dist/dependency-versions.txt
           {
             printf 'tag=%s\n' "$GITHUB_REF_NAME"
             printf 'commit=%s\n' "$GITHUB_SHA"
-            printf 'abis=armeabi-v7a,arm64-v8a\n'
+            printf 'arm_abis=armeabi-v7a,arm64-v8a\n'
+            printf 'universal_abis=armeabi-v7a,arm64-v8a,x86,x86_64\n'
             printf 'min_sdk=26\n'
           } > dist/build-info.txt
           cd dist
