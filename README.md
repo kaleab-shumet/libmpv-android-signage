@@ -7,6 +7,9 @@ Based on [mpv-android](https://github.com/mpv-android/mpv-android)
 This fork is tuned for unattended signage players: smaller native libraries and a
 runtime preset for 24/7 playback.
 
+The AAR is compiled against Android API 36 and supports Android 8.0 (API 26)
+and newer. The consuming application controls its own target SDK.
+
 **What is different from upstream**
 
 | Area | Change | How to undo / tune |

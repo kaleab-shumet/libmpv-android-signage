@@ -117,6 +117,7 @@ jobs:
             printf 'commit=%s\n' "$GITHUB_SHA"
             printf 'arm_abis=armeabi-v7a,arm64-v8a\n'
             printf 'universal_abis=armeabi-v7a,arm64-v8a,x86,x86_64\n'
+            printf 'compile_sdk=36\n'
             printf 'min_sdk=26\n'
           } > dist/build-info.txt
           cd dist
