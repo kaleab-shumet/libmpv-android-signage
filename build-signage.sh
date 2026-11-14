@@ -111,6 +111,30 @@ install_prerequisites() {
     fi
 }
 
+meson_is_new_enough() {
+    local installed minimum
+    installed="$(meson --version 2>/dev/null || printf '0')"
+    minimum="1.11.0"
+    [[ "$(printf '%s\n' "$minimum" "$installed" | sort -V | head -n 1)" == "$minimum" ]]
+}
+
+install_modern_meson() {
+    local venv_dir="$PROJECT_DIR/.build-tools/meson-venv"
+
+    printf 'Meson 1.11 or newer is required; installing it in %s...\n' "$venv_dir"
+    if ! python3 -m venv "$venv_dir"; then
+        if command -v apt-get >/dev/null 2>&1; then
+            sudo apt-get install -y python3-venv
+            python3 -m venv "$venv_dir"
+        else
+            fail "Python venv support is required to install Meson 1.11+"
+        fi
+    fi
+    "$venv_dir/bin/python" -m pip install \
+        --disable-pip-version-check "meson>=1.11.0,<2"
+    export PATH="$venv_dir/bin:$PATH"
+}
+
 required_commands=(
     autoconf automake git gperf javac libtoolize make meson nasm ninja
     pkg-config python3 unzip wget
@@ -139,6 +163,12 @@ for command_name in "${required_commands[@]}"; do
     command -v "$command_name" >/dev/null 2>&1 || missing+=("$command_name")
 done
 ((${#missing[@]} == 0)) || fail "tools are still missing: ${missing[*]}"
+
+if ! meson_is_new_enough; then
+    install_modern_meson
+fi
+meson_is_new_enough || fail "Meson 1.11 or newer could not be installed"
+printf 'Using Meson %s\n' "$(meson --version)"
 
 java_version="$(javac -version 2>&1 | awk '{print $2}')"
 java_major="${java_version%%.*}"

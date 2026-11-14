@@ -32,8 +32,15 @@ jobs:
       - name: Install system dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y autoconf pkgconf libtool ninja-build python3-pip python3-jinja2 gperf nasm
-          sudo pip3 install --break-system-packages meson
+          sudo apt-get install -y autoconf pkgconf libtool ninja-build python3-venv python3-jinja2 gperf nasm
+
+      - name: Install Meson 1.11+
+        run: |
+          python3 -m venv "$RUNNER_TEMP/meson-venv"
+          "$RUNNER_TEMP/meson-venv/bin/python" -m pip install \
+            --disable-pip-version-check "meson>=1.11.0,<2"
+          echo "$RUNNER_TEMP/meson-venv/bin" >> "$GITHUB_PATH"
+          "$RUNNER_TEMP/meson-venv/bin/meson" --version
 
       - name: Download dependencies
         working-directory: ./buildscripts
