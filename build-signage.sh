@@ -118,10 +118,14 @@ meson_is_new_enough() {
     [[ "$(printf '%s\n' "$minimum" "$installed" | sort -V | head -n 1)" == "$minimum" ]]
 }
 
+python_build_modules_available() {
+    python3 -c 'import jinja2, jsonschema' >/dev/null 2>&1
+}
+
 install_modern_meson() {
     local venv_dir="$PROJECT_DIR/.build-tools/meson-venv"
 
-    printf 'Meson 1.11 or newer is required; installing it in %s...\n' "$venv_dir"
+    printf 'Installing Python build tools in %s...\n' "$venv_dir"
     if ! python3 -m venv "$venv_dir"; then
         if command -v apt-get >/dev/null 2>&1; then
             sudo apt-get install -y python3-venv
@@ -131,7 +135,8 @@ install_modern_meson() {
         fi
     fi
     "$venv_dir/bin/python" -m pip install \
-        --disable-pip-version-check "meson>=1.11.0,<2"
+        --disable-pip-version-check \
+        "meson>=1.11.0,<2" "Jinja2>=3.1,<4" "jsonschema>=4,<5"
     export PATH="$venv_dir/bin:$PATH"
 }
 
@@ -164,11 +169,13 @@ for command_name in "${required_commands[@]}"; do
 done
 ((${#missing[@]} == 0)) || fail "tools are still missing: ${missing[*]}"
 
-if ! meson_is_new_enough; then
+if ! meson_is_new_enough || ! python_build_modules_available; then
     install_modern_meson
 fi
 meson_is_new_enough || fail "Meson 1.11 or newer could not be installed"
+python_build_modules_available || fail "Jinja2 and jsonschema could not be installed"
 printf 'Using Meson %s\n' "$(meson --version)"
+printf 'Python build modules are available.\n'
 
 java_version="$(javac -version 2>&1 | awk '{print $2}')"
 java_major="${java_version%%.*}"

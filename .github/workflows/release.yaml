@@ -42,13 +42,16 @@ jobs:
             autoconf automake git gperf libtool make nasm ninja-build \
             pkg-config python3 python3-jinja2 python3-venv unzip wget
 
-      - name: Install Meson 1.11+
+      - name: Install Python build tools
         run: |
           python3 -m venv "$RUNNER_TEMP/meson-venv"
           "$RUNNER_TEMP/meson-venv/bin/python" -m pip install \
-            --disable-pip-version-check "meson>=1.11.0,<2"
+            --disable-pip-version-check \
+            "meson>=1.11.0,<2" "Jinja2>=3.1,<4" "jsonschema>=4,<5"
           echo "$RUNNER_TEMP/meson-venv/bin" >> "$GITHUB_PATH"
           "$RUNNER_TEMP/meson-venv/bin/meson" --version
+          "$RUNNER_TEMP/meson-venv/bin/python" -c \
+            'import jinja2, jsonschema; print("Python build modules OK")'
 
       - name: Use the runner Android SDK
         run: |
